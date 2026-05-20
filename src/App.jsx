@@ -2,10 +2,20 @@ import { useState } from 'react';
 import CanvasView from './views/CanvasView';
 import MemoryBookView from './views/MemoryBookView';
 import PlaybackView from './views/PlaybackView';
+import OnboardingOverlay from './components/OnboardingOverlay';
 
 export default function App() {
   const [view, setView] = useState('canvas'); // 'canvas' | 'memoryBook' | 'playback'
   const [selectedArtwork, setSelectedArtwork] = useState(null);
+  const [isOnboarded, setIsOnboarded] = useState(
+    () => {
+      try {
+        return localStorage.getItem('plonk_onboarded') === 'true';
+      } catch {
+        return true;
+      }
+    }
+  );
 
   const goCanvas = () => {
     setSelectedArtwork(null);
@@ -17,23 +27,31 @@ export default function App() {
     setView('playback');
   };
 
+  let body;
   if (view === 'memoryBook') {
-    return (
+    body = (
       <MemoryBookView
         onBack={goCanvas}
         onOpenArtwork={goPlayback}
       />
     );
-  }
-
-  if (view === 'playback' && selectedArtwork) {
-    return (
+  } else if (view === 'playback' && selectedArtwork) {
+    body = (
       <PlaybackView
         artwork={selectedArtwork}
         onClose={() => setView('memoryBook')}
       />
     );
+  } else {
+    body = <CanvasView onOpenMemoryBook={goMemoryBook} />;
   }
 
-  return <CanvasView onOpenMemoryBook={goMemoryBook} />;
+  return (
+    <>
+      {body}
+      {!isOnboarded && (
+        <OnboardingOverlay onComplete={() => setIsOnboarded(true)} />
+      )}
+    </>
+  );
 }
