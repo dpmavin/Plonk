@@ -48,6 +48,15 @@
   overflow: hidden;
 }
 
+.canvas-view__sweep {
+  position: absolute;
+  inset: 0;
+  background: var(--color-canvas-bg);
+  animation: canvasSweep 700ms var(--ease-soft) forwards;
+  pointer-events: none;
+  z-index: var(--z-canvas);
+}
+
 .canvas-view__loading {
   position: absolute;
   inset: 0;
