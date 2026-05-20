@@ -6,6 +6,8 @@ import HandCursor from '../components/HandCursor';
 import Canvas from '../components/Canvas';
 import NowPlaying from '../components/NowPlaying';
 import TextBubble from '../components/TextBubble';
+import PromptCard from '../components/PromptCard';
+import { randomPrompt } from '../constants/prompts';
 import { MemoryBookIcon, ClearIcon } from '../components/icons';
 import { COPY } from '../constants/copy';
 import { MVP_PALETTE } from '../constants/palette';
@@ -22,6 +24,8 @@ export default function CanvasView({ onOpenMemoryBook }) {
   const [sweeping, setSweeping] = useState(false);
   const [textBubbles, setTextBubbles] = useState([]); // {id, x, y, text, color, size}
   const [activeTextId, setActiveTextId] = useState(null);
+  const [currentPrompt, setCurrentPrompt] = useState(() => randomPrompt());
+  const [showPrompt, setShowPrompt] = useState(true);
 
   const canvasAreaRef = useRef(null);
   const canvasRef = useRef(null);
@@ -210,6 +214,15 @@ export default function CanvasView({ onOpenMemoryBook }) {
             <div className="canvas-view__loading">Waking up the camera…</div>
           )}
           <Canvas ref={canvasRef} width={areaSize.w} height={areaSize.h} />
+
+          {showPrompt && (
+            <PromptCard
+              text={currentPrompt}
+              onSkip={() => setCurrentPrompt((p) => randomPrompt(p))}
+              onDismiss={() => setShowPrompt(false)}
+              audio={audio}
+            />
+          )}
           {sweeping && <div className="canvas-view__sweep" aria-hidden="true" />}
 
           {textBubbles.map((b) => (
