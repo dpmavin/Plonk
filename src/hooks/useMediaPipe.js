@@ -67,7 +67,7 @@ export function useMediaPipe({ enabled = true } = {}) {
             if (handsRef.current && videoRef.current) {
               try {
                 await handsRef.current.send({ image: videoRef.current });
-              } catch (e) {
+              } catch {
                 // eat per-frame errors to avoid log spam
               }
             }
@@ -89,10 +89,14 @@ export function useMediaPipe({ enabled = true } = {}) {
     return () => {
       cancelled = true;
       if (cameraRef.current) {
-        try { cameraRef.current.stop(); } catch {}
+        try { cameraRef.current.stop(); } catch {
+          // already stopped
+        }
       }
       if (handsRef.current) {
-        try { handsRef.current.close(); } catch {}
+        try { handsRef.current.close(); } catch {
+          // already closed
+        }
       }
     };
   }, [enabled]);

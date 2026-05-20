@@ -7,31 +7,23 @@ import './NowPlaying.css';
  * Props:
  *   color      — active color object { name, hex, instrument }
  *   active     — true while pinch is held (drawing)
- *   bumpKey    — incrementing number; triggers instrumentBounce on change
+ *   bumpKey    — incrementing number; remounts the label span to restart bounce
  */
 export default function NowPlaying({ color, active, bumpKey }) {
-  const [visible, setVisible] = useState(false);
-  const [bouncing, setBouncing] = useState(false);
+  // Linger 1.5s after release before hiding
+  const [showAfterRelease, setShowAfterRelease] = useState(false);
 
-  // Show while active, then linger 1.5s after release
   useEffect(() => {
     if (active) {
-      setVisible(true);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowAfterRelease(true);
       return undefined;
     }
-    const t = setTimeout(() => setVisible(false), 1500);
+    const t = setTimeout(() => setShowAfterRelease(false), 1500);
     return () => clearTimeout(t);
   }, [active]);
 
-  // Bounce label whenever bumpKey increments
-  useEffect(() => {
-    if (bumpKey == null) return;
-    setBouncing(true);
-    const t = setTimeout(() => setBouncing(false), 360);
-    return () => clearTimeout(t);
-  }, [bumpKey]);
-
-  if (!visible) return null;
+  if (!active && !showAfterRelease) return null;
 
   return (
     <div className="now-playing" role="status">
@@ -40,7 +32,8 @@ export default function NowPlaying({ color, active, bumpKey }) {
         style={{ background: color.hex }}
         aria-hidden="true"
       />
-      <span className={'now-playing__label' + (bouncing ? ' is-bouncing' : '')}>
+      {/* key=bumpKey remounts the label, restarting the bounce animation */}
+      <span key={bumpKey} className="now-playing__label is-bouncing">
         {color.instrument}
       </span>
     </div>

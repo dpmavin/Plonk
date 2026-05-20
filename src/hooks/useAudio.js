@@ -64,7 +64,9 @@ export function useAudio() {
         Object.values(instrumentsRef.current).forEach((inst) => inst?.dispose?.());
         Object.values(cuesRef.current).forEach((inst) => inst?.dispose?.());
         masterRef.current?.dispose?.();
-      } catch {}
+      } catch {
+        // dispose may throw if already torn down
+      }
     };
   }, []);
 
@@ -80,7 +82,7 @@ export function useAudio() {
       if (inst.triggerAttackRelease) {
         inst.triggerAttackRelease(note, '16n', Tone.now());
       }
-    } catch (e) {
+    } catch {
       // ignore overlap errors
     }
   }, [ready]);
@@ -91,8 +93,8 @@ export function useAudio() {
     if (!cue) return;
     const Tone = ToneRef.current;
     try {
-      playCue(Tone, cue, cuesRef.current, masterRef.current);
-    } catch (e) {
+      playCue(Tone, cue, cuesRef.current);
+    } catch {
       // silent — audio shouldn't break UI
     }
   }, [ready]);
@@ -192,7 +194,7 @@ function buildInstrument(Tone, color, master) {
 
 // === Cue playback ===
 
-function getOrCreateCueVoice(Tone, cue, cueName, cache, master) {
+function getOrCreateCueVoice(Tone, cue, cueName, cache) {
   if (cache[cueName]) return cache[cueName];
   const dbVol = ampToDb(cue.volume ?? 0.3);
   let voice;
@@ -220,9 +222,9 @@ function getOrCreateCueVoice(Tone, cue, cueName, cache, master) {
   return voice;
 }
 
-function playCue(Tone, cue, cache, master) {
+function playCue(Tone, cue, cache) {
   const cueName = cue.description || JSON.stringify(cue).slice(0, 24);
-  const voice = getOrCreateCueVoice(Tone, cue, cueName, cache, master);
+  const voice = getOrCreateCueVoice(Tone, cue, cueName, cache);
   const now = Tone.now();
 
   if (cue.type === 'noise') {

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CloseIcon, PlayIcon, PauseIcon, DownloadIcon } from '../components/icons';
 import { COPY } from '../constants/copy';
+import { useAudio } from '../hooks/useAudio';
 import './PlaybackView.css';
 
 function formatDate(ts) {
@@ -14,6 +15,25 @@ function formatDate(ts) {
 
 export default function PlaybackView({ artwork, onClose }) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const audio = useAudio();
+
+  // Start audio on first user gesture; same pattern as CanvasView
+  useEffect(() => {
+    if (audio.ready) return undefined;
+    const handler = () => audio.start();
+    window.addEventListener('pointerdown', handler, { once: true });
+    return () => window.removeEventListener('pointerdown', handler);
+  }, [audio]);
+
+  // While "playing", loop a soft note from the artwork's mood family
+  useEffect(() => {
+    if (!isPlaying || !audio.ready) return undefined;
+    const family = artwork.mood === 'twilight' ? 'twilight' : 'daydream';
+    const id = family === 'twilight' ? 'sage' : 'coral';
+    audio.triggerCue('save');
+    const interval = setInterval(() => audio.triggerNote(id), 600);
+    return () => clearInterval(interval);
+  }, [isPlaying, audio, artwork.mood]);
 
   const downloadImage = () => {
     if (!artwork.imageDataURL) return;

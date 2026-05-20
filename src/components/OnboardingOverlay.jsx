@@ -31,7 +31,9 @@ export default function OnboardingOverlay({ onComplete }) {
   const finish = () => {
     try {
       localStorage.setItem('plonk_onboarded', 'true');
-    } catch {}
+    } catch {
+      // localStorage may be unavailable (private mode); fail silently
+    }
     setLeaving(true);
     setTimeout(() => onComplete?.(), 400);
   };

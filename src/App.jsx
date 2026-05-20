@@ -2,6 +2,7 @@ import { useState } from 'react';
 import CanvasView from './views/CanvasView';
 import MemoryBookView from './views/MemoryBookView';
 import PlaybackView from './views/PlaybackView';
+import SpecsView from './views/SpecsView';
 import OnboardingOverlay from './components/OnboardingOverlay';
 
 export default function App() {
@@ -16,6 +17,15 @@ export default function App() {
       }
     }
   );
+
+  // Dev-only specs page — ?specs in dev mode bypasses the app
+  if (
+    import.meta.env.DEV &&
+    typeof window !== 'undefined' &&
+    window.location.search.includes('specs')
+  ) {
+    return <SpecsView />;
+  }
 
   const goCanvas = () => {
     setSelectedArtwork(null);
