@@ -1,7 +1,8 @@
-/* Floating nav dock — sits at the bottom-left of every view */
+/* Floating nav dock — bottom-left, offset past the 108px tool-panel column
+   on canvas view so it never sits on top of the size slider. */
 .app-nav-dock {
   position: fixed;
-  left: var(--space-5);
+  left: calc(108px + var(--space-5));
   bottom: var(--space-5);
   z-index: 40;
   pointer-events: auto;
