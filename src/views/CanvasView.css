@@ -46,6 +46,11 @@
   flex: 1;
   position: relative;
   overflow: hidden;
+  cursor: default;
+}
+
+.canvas-view__canvas-area.is-text-mode {
+  cursor: text;
 }
 
 .canvas-view__sweep {

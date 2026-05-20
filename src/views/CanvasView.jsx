@@ -5,6 +5,7 @@ import WebcamPiP from '../components/WebcamPiP';
 import HandCursor from '../components/HandCursor';
 import Canvas from '../components/Canvas';
 import NowPlaying from '../components/NowPlaying';
+import TextBubble from '../components/TextBubble';
 import { MemoryBookIcon, ClearIcon } from '../components/icons';
 import { COPY } from '../constants/copy';
 import { MVP_PALETTE } from '../constants/palette';
@@ -19,6 +20,8 @@ export default function CanvasView({ onOpenMemoryBook }) {
   const [activeTool, setActiveTool] = useState('pen');
   const [strokeSize, setStrokeSize] = useState(8);
   const [sweeping, setSweeping] = useState(false);
+  const [textBubbles, setTextBubbles] = useState([]); // {id, x, y, text, color, size}
+  const [activeTextId, setActiveTextId] = useState(null);
 
   const canvasAreaRef = useRef(null);
   const canvasRef = useRef(null);
@@ -118,6 +121,58 @@ export default function CanvasView({ onOpenMemoryBook }) {
     onOpenMemoryBook();
   }, [audio, onOpenMemoryBook]);
 
+  const sizeLabelFromStroke = (n) =>
+    n <= 10 ? 'S' : n <= 20 ? 'M' : 'L';
+
+  const handleCanvasAreaClick = useCallback(
+    (e) => {
+      if (activeTool !== 'text') return;
+      // Don't place when clicking an existing bubble (TextBubble stops propagation)
+      const rect = canvasAreaRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const id = `text_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      setTextBubbles((bs) => [
+        ...bs,
+        {
+          id,
+          x,
+          y,
+          text: '',
+          color: activeColor.hex,
+          size: sizeLabelFromStroke(strokeSize),
+        },
+      ]);
+      setActiveTextId(id);
+    },
+    [activeTool, activeColor.hex, strokeSize]
+  );
+
+  const handleTextChange = useCallback((id, text) => {
+    setTextBubbles((bs) => bs.map((b) => (b.id === id ? { ...b, text } : b)));
+  }, []);
+
+  const handleTextCommit = useCallback((id) => {
+    setActiveTextId((curr) => (curr === id ? null : curr));
+    // Remove empty bubbles on commit
+    setTextBubbles((bs) =>
+      bs.filter((b) => b.id !== id || (b.text && b.text.trim() !== ''))
+    );
+  }, []);
+
+  const handleTextDelete = useCallback((id) => {
+    setTextBubbles((bs) => bs.filter((b) => b.id !== id));
+    setActiveTextId((curr) => (curr === id ? null : curr));
+  }, []);
+
+  const handleKeyAudio = useCallback(
+    (cueName) => {
+      audio.triggerCue(cueName);
+    },
+    [audio]
+  );
+
   return (
     <div className="canvas-view">
       <header className="canvas-view__header">
@@ -143,12 +198,37 @@ export default function CanvasView({ onOpenMemoryBook }) {
           audio={audio}
         />
 
-        <main ref={canvasAreaRef} className="canvas-view__canvas-area linen-canvas">
+        <main
+          ref={canvasAreaRef}
+          className={
+            'canvas-view__canvas-area linen-canvas' +
+            (activeTool === 'text' ? ' is-text-mode' : '')
+          }
+          onClick={handleCanvasAreaClick}
+        >
           {!cameraReady && !cameraError && (
             <div className="canvas-view__loading">Waking up the camera…</div>
           )}
           <Canvas ref={canvasRef} width={areaSize.w} height={areaSize.h} />
           {sweeping && <div className="canvas-view__sweep" aria-hidden="true" />}
+
+          {textBubbles.map((b) => (
+            <TextBubble
+              key={b.id}
+              x={b.x}
+              y={b.y}
+              color={b.color}
+              size={b.size}
+              text={b.text}
+              active={activeTextId === b.id}
+              onActivate={() => setActiveTextId(b.id)}
+              onChange={(t) => handleTextChange(b.id, t)}
+              onCommit={() => handleTextCommit(b.id)}
+              onDelete={() => handleTextDelete(b.id)}
+              onKeyAudio={handleKeyAudio}
+            />
+          ))}
+
           <HandCursor
             x={cursorX}
             y={cursorY}
