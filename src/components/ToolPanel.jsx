@@ -17,13 +17,29 @@ export default function ToolPanel({
   onSelectTool,
   strokeSize,
   onChangeSize,
+  audio,
 }) {
   const [poppingId, setPoppingId] = useState(null);
 
   const handleColor = (color) => {
     onSelectColor(color);
     setPoppingId(color.id);
+    audio?.triggerCue('colorSelect');
     setTimeout(() => setPoppingId(null), 320);
+  };
+
+  const handleTool = (id) => {
+    onSelectTool(id);
+    const cueName =
+      id === 'pen' ? 'toolTogglePen' :
+      id === 'crayon' ? 'toolToggleCrayon' :
+      'toolToggleText';
+    audio?.triggerCue(cueName);
+  };
+
+  const handleSize = (n) => {
+    onChangeSize(n);
+    audio?.triggerCue('sizeAdjust');
   };
 
   return (
@@ -71,7 +87,7 @@ export default function ToolPanel({
               aria-checked={selected}
               aria-label={label}
               className={'tool-panel__tool' + (selected ? ' is-selected' : '')}
-              onClick={() => onSelectTool(id)}
+              onClick={() => handleTool(id)}
             >
               <Icon />
               <span className="tool-panel__swatch-tooltip">{label}</span>
@@ -90,7 +106,7 @@ export default function ToolPanel({
           max={32}
           step={1}
           value={strokeSize}
-          onChange={(e) => onChangeSize(Number(e.target.value))}
+          onChange={(e) => handleSize(Number(e.target.value))}
           className="tool-panel__size-input"
           style={{ '--accent': activeColor.hex }}
           aria-label={COPY.toolPanel.sizeLabel}

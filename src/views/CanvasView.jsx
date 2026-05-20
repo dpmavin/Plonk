@@ -108,9 +108,15 @@ export default function CanvasView({ onOpenMemoryBook }) {
 
   const handleClear = useCallback(() => {
     canvasRef.current?.clear();
+    audio.triggerCue('clear');
     setSweeping(true);
     setTimeout(() => setSweeping(false), 700);
-  }, []);
+  }, [audio]);
+
+  const handleOpenMemoryBook = useCallback(() => {
+    audio.triggerCue('memoryBookOpen');
+    onOpenMemoryBook();
+  }, [audio, onOpenMemoryBook]);
 
   return (
     <div className="canvas-view">
@@ -120,7 +126,7 @@ export default function CanvasView({ onOpenMemoryBook }) {
           type="button"
           className="canvas-view__header-btn"
           aria-label={COPY.headerMemoryBookAria}
-          onClick={onOpenMemoryBook}
+          onClick={handleOpenMemoryBook}
         >
           <MemoryBookIcon />
         </button>
@@ -134,6 +140,7 @@ export default function CanvasView({ onOpenMemoryBook }) {
           onSelectTool={setActiveTool}
           strokeSize={strokeSize}
           onChangeSize={setStrokeSize}
+          audio={audio}
         />
 
         <main ref={canvasAreaRef} className="canvas-view__canvas-area linen-canvas">
