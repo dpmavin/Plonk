@@ -1,0 +1,84 @@
+.webcam-pip {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  width: 160px;
+  height: 120px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  border: 2px solid var(--color-border);
+  background: #000;
+  z-index: var(--z-pip);
+  opacity: 0.85;
+  transition: opacity var(--duration-base) var(--ease-soft), transform var(--duration-base) var(--ease-soft);
+}
+
+.webcam-pip:hover {
+  opacity: 1;
+}
+
+.webcam-pip.is-hidden {
+  width: 36px;
+  height: 36px;
+  opacity: 0.7;
+  background: var(--color-white);
+  border-color: var(--color-border);
+}
+
+.webcam-pip.is-hidden .webcam-pip__video {
+  display: none;
+}
+
+.webcam-pip__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  display: block;
+}
+
+.webcam-pip__toggle {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--color-text-primary);
+  backdrop-filter: blur(4px);
+}
+
+.webcam-pip.is-hidden .webcam-pip__toggle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.webcam-pip__toggle svg {
+  width: 14px;
+  height: 14px;
+}
+
+.webcam-pip--error {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  max-width: 240px;
+  background: var(--color-white);
+  color: var(--color-text-muted);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  font-size: 12px;
+  box-shadow: var(--shadow-panel);
+  z-index: var(--z-pip);
+}
