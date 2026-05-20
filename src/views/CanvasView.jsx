@@ -10,6 +10,7 @@ import { MVP_PALETTE } from '../constants/palette';
 import { useMediaPipe } from '../hooks/useMediaPipe';
 import { usePinch } from '../hooks/usePinch';
 import { useDrawing } from '../hooks/useDrawing';
+import { useAudio } from '../hooks/useAudio';
 import './CanvasView.css';
 
 export default function CanvasView({ onOpenMemoryBook }) {
@@ -24,6 +25,22 @@ export default function CanvasView({ onOpenMemoryBook }) {
 
   const { videoRef, landmarks, handVisible, cameraReady, error: cameraError } =
     useMediaPipe({ enabled: true });
+
+  const audio = useAudio();
+
+  // Unlock audio on first interaction anywhere in the canvas view
+  useEffect(() => {
+    if (audio.ready) return undefined;
+    const handler = () => {
+      audio.start();
+    };
+    window.addEventListener('pointerdown', handler, { once: true });
+    window.addEventListener('keydown', handler, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', handler);
+      window.removeEventListener('keydown', handler);
+    };
+  }, [audio]);
 
   useEffect(() => {
     if (!canvasAreaRef.current) return undefined;
@@ -53,6 +70,25 @@ export default function CanvasView({ onOpenMemoryBook }) {
   const drawingEnabled =
     handVisible && (activeTool === 'pen' || activeTool === 'crayon');
 
+  // Throttle in-stroke notes so we don't fire every frame
+  const lastNoteAtRef = useRef(0);
+  const handleStrokeStart = useCallback(() => {
+    audio.triggerCue('pinchStart');
+    audio.triggerNote(activeColor.id);
+    lastNoteAtRef.current = performance.now();
+  }, [audio, activeColor.id]);
+  const handleStrokeContinue = useCallback(() => {
+    const now = performance.now();
+    // ~280ms between notes feels musical, not chaotic
+    if (now - lastNoteAtRef.current > 280) {
+      audio.triggerNote(activeColor.id);
+      lastNoteAtRef.current = now;
+    }
+  }, [audio, activeColor.id]);
+  const handleStrokeEnd = useCallback(() => {
+    audio.triggerCue('pinchRelease');
+  }, [audio]);
+
   useDrawing({
     canvasRef,
     isPinching,
@@ -62,6 +98,9 @@ export default function CanvasView({ onOpenMemoryBook }) {
     size: strokeSize,
     tool: activeTool,
     enabled: drawingEnabled,
+    onStrokeStart: handleStrokeStart,
+    onStrokeContinue: handleStrokeContinue,
+    onStrokeEnd: handleStrokeEnd,
   });
 
   const handleClear = useCallback(() => {
