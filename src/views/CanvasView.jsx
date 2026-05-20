@@ -4,6 +4,7 @@ import ToolPanel from '../components/ToolPanel';
 import WebcamPiP from '../components/WebcamPiP';
 import HandCursor from '../components/HandCursor';
 import Canvas from '../components/Canvas';
+import NowPlaying from '../components/NowPlaying';
 import { MemoryBookIcon, ClearIcon } from '../components/icons';
 import { COPY } from '../constants/copy';
 import { MVP_PALETTE } from '../constants/palette';
@@ -72,17 +73,19 @@ export default function CanvasView({ onOpenMemoryBook }) {
 
   // Throttle in-stroke notes so we don't fire every frame
   const lastNoteAtRef = useRef(0);
+  const [noteBumpKey, setNoteBumpKey] = useState(0);
   const handleStrokeStart = useCallback(() => {
     audio.triggerCue('pinchStart');
     audio.triggerNote(activeColor.id);
     lastNoteAtRef.current = performance.now();
+    setNoteBumpKey((k) => k + 1);
   }, [audio, activeColor.id]);
   const handleStrokeContinue = useCallback(() => {
     const now = performance.now();
-    // ~280ms between notes feels musical, not chaotic
     if (now - lastNoteAtRef.current > 280) {
       audio.triggerNote(activeColor.id);
       lastNoteAtRef.current = now;
+      setNoteBumpKey((k) => k + 1);
     }
   }, [audio, activeColor.id]);
   const handleStrokeEnd = useCallback(() => {
@@ -146,6 +149,11 @@ export default function CanvasView({ onOpenMemoryBook }) {
             pinching={isPinching}
             color={activeColor.hex}
             rippleKey={rippleKey}
+          />
+          <NowPlaying
+            color={activeColor}
+            active={isPinching && drawingEnabled}
+            bumpKey={noteBumpKey}
           />
         </main>
       </div>
