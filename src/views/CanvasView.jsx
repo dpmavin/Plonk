@@ -7,6 +7,7 @@ import { MemoryBookIcon, ClearIcon } from '../components/icons';
 import { COPY } from '../constants/copy';
 import { MVP_PALETTE } from '../constants/palette';
 import { useMediaPipe } from '../hooks/useMediaPipe';
+import { usePinch } from '../hooks/usePinch';
 import './CanvasView.css';
 
 export default function CanvasView({ onOpenMemoryBook }) {
@@ -34,10 +35,17 @@ export default function CanvasView({ onOpenMemoryBook }) {
     return () => ro.disconnect();
   }, []);
 
-  // Map landmark 8 (index fingertip) to canvas area px (no pinch yet, that's Step 8)
+  // Map landmark 8 (index fingertip) to canvas area px
   const indexTip = landmarks[8];
   const cursorX = indexTip ? indexTip.x * areaSize.w : 0;
   const cursorY = indexTip ? indexTip.y * areaSize.h : 0;
+
+  const { isPinching, rippleKey } = usePinch({
+    landmarks,
+    areaWidth: areaSize.w,
+    areaHeight: areaSize.h,
+    thresholdPx: 40,
+  });
 
   return (
     <div className="canvas-view">
@@ -71,9 +79,9 @@ export default function CanvasView({ onOpenMemoryBook }) {
             x={cursorX}
             y={cursorY}
             visible={handVisible}
-            pinching={false}
+            pinching={isPinching}
             color={activeColor.hex}
-            rippleKey={0}
+            rippleKey={rippleKey}
           />
         </main>
       </div>
