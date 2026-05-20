@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PlonkLogo from '../components/PlonkLogo';
 import ToolPanel from '../components/ToolPanel';
 import WebcamPiP from '../components/WebcamPiP';
+import HandCursor from '../components/HandCursor';
 import { MemoryBookIcon, ClearIcon } from '../components/icons';
 import { COPY } from '../constants/copy';
 import { MVP_PALETTE } from '../constants/palette';
@@ -13,21 +14,30 @@ export default function CanvasView({ onOpenMemoryBook }) {
   const [activeTool, setActiveTool] = useState('pen');
   const [strokeSize, setStrokeSize] = useState(8);
 
+  const canvasAreaRef = useRef(null);
+  const [areaSize, setAreaSize] = useState({ w: 0, h: 0 });
+
   const { videoRef, landmarks, handVisible, cameraReady, error: cameraError } =
     useMediaPipe({ enabled: true });
 
-  // Dev: log landmark stream once when first detected
+  // Track canvas area size for landmark-to-pixel mapping
   useEffect(() => {
-    if (handVisible && landmarks.length === 21 && import.meta.env.DEV) {
-      // throttle log: only log every ~30 frames
-      const w = window;
-      w.__plonkFrame = (w.__plonkFrame || 0) + 1;
-      if (w.__plonkFrame % 30 === 0) {
-        // eslint-disable-next-line no-console
-        console.log('[plonk] landmarks index tip:', landmarks[8]);
-      }
-    }
-  }, [handVisible, landmarks]);
+    if (!canvasAreaRef.current) return undefined;
+    const el = canvasAreaRef.current;
+    const ro = new ResizeObserver(() => {
+      const r = el.getBoundingClientRect();
+      setAreaSize({ w: r.width, h: r.height });
+    });
+    ro.observe(el);
+    const r = el.getBoundingClientRect();
+    setAreaSize({ w: r.width, h: r.height });
+    return () => ro.disconnect();
+  }, []);
+
+  // Map landmark 8 (index fingertip) to canvas area px (no pinch yet, that's Step 8)
+  const indexTip = landmarks[8];
+  const cursorX = indexTip ? indexTip.x * areaSize.w : 0;
+  const cursorY = indexTip ? indexTip.y * areaSize.h : 0;
 
   return (
     <div className="canvas-view">
@@ -53,11 +63,18 @@ export default function CanvasView({ onOpenMemoryBook }) {
           onChangeSize={setStrokeSize}
         />
 
-        <main className="canvas-view__canvas-area linen-canvas">
-          {/* Canvas, HandCursor, NowPlaying, TextBubbles go here in later steps */}
+        <main ref={canvasAreaRef} className="canvas-view__canvas-area linen-canvas">
           {!cameraReady && !cameraError && (
             <div className="canvas-view__loading">Waking up the camera…</div>
           )}
+          <HandCursor
+            x={cursorX}
+            y={cursorY}
+            visible={handVisible}
+            pinching={false}
+            color={activeColor.hex}
+            rippleKey={0}
+          />
         </main>
       </div>
 

@@ -1,0 +1,20 @@
+.hand-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+  z-index: var(--z-cursor);
+  will-change: transform;
+}
+
+.hand-cursor__ripple {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 2px solid;
+  border-color: currentColor;
+  pointer-events: none;
+  animation: pinchRipple 600ms var(--ease-out) forwards;
+}
