@@ -1,0 +1,37 @@
+.toast {
+  position: fixed;
+  bottom: var(--space-8);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-white);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-pill);
+  padding: var(--space-3) var(--space-5);
+  box-shadow: var(--shadow-toast);
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: var(--z-toast);
+  animation: toastIn 300ms var(--ease-spring);
+}
+
+.toast.is-leaving {
+  animation: toastOut 300ms var(--ease-soft) forwards;
+}
+
+.toast__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--color-mint);
+}
+
+.toast__check svg {
+  width: 16px;
+  height: 16px;
+}

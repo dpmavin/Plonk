@@ -7,7 +7,11 @@ import Canvas from '../components/Canvas';
 import NowPlaying from '../components/NowPlaying';
 import TextBubble from '../components/TextBubble';
 import PromptCard from '../components/PromptCard';
+import SaveDialog from '../components/SaveDialog';
+import Toast from '../components/Toast';
 import { randomPrompt } from '../constants/prompts';
+import { useMemoryBook } from '../hooks/useMemoryBook';
+import { exportArtworkPNG } from '../utils/canvasExport';
 import { MemoryBookIcon, ClearIcon } from '../components/icons';
 import { COPY } from '../constants/copy';
 import { MVP_PALETTE } from '../constants/palette';
@@ -26,6 +30,10 @@ export default function CanvasView({ onOpenMemoryBook }) {
   const [activeTextId, setActiveTextId] = useState(null);
   const [currentPrompt, setCurrentPrompt] = useState(() => randomPrompt());
   const [showPrompt, setShowPrompt] = useState(true);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+
+  const { addArtwork } = useMemoryBook();
 
   const canvasAreaRef = useRef(null);
   const canvasRef = useRef(null);
@@ -177,6 +185,38 @@ export default function CanvasView({ onOpenMemoryBook }) {
     [audio]
   );
 
+  const handleOpenSave = useCallback(() => {
+    setShowSaveDialog(true);
+  }, []);
+
+  const handleSave = useCallback(
+    async ({ title, mood, pinned }) => {
+      // Need the underlying canvas element for compositing
+      const canvasEl =
+        canvasAreaRef.current?.querySelector('canvas.plonk-canvas');
+      const imageDataURL = exportArtworkPNG({
+        canvasEl,
+        bubbles: textBubbles,
+        bgColor: getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-canvas-bg')
+          .trim() || '#FAFAF7',
+        areaWidth: areaSize.w,
+        areaHeight: areaSize.h,
+      });
+      addArtwork({
+        title,
+        mood,
+        pinned,
+        prompt: showPrompt ? currentPrompt : '',
+        imageDataURL,
+      });
+      audio.triggerCue('save');
+      setShowSaveDialog(false);
+      setShowToast(true);
+    },
+    [textBubbles, areaSize.w, areaSize.h, addArtwork, audio, showPrompt, currentPrompt]
+  );
+
   return (
     <div className="canvas-view">
       <header className="canvas-view__header">
@@ -267,12 +307,23 @@ export default function CanvasView({ onOpenMemoryBook }) {
           <ClearIcon />
           <span>{COPY.footer.clear}</span>
         </button>
-        <button type="button" className="btn btn--primary">
+        <button type="button" className="btn btn--primary" onClick={handleOpenSave}>
           <span>{COPY.footer.save}</span>
         </button>
       </footer>
 
       <WebcamPiP videoRef={videoRef} error={cameraError} />
+
+      {showSaveDialog && (
+        <SaveDialog
+          onCancel={() => setShowSaveDialog(false)}
+          onSave={handleSave}
+        />
+      )}
+
+      {showToast && (
+        <Toast message={COPY.toast.saved} onDone={() => setShowToast(false)} />
+      )}
     </div>
   );
 }
