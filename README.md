@@ -1,16 +1,46 @@
-# React + Vite
+# Plonk
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sketch your ideas. Hear them plonk.
 
-Currently, two official plugins are available:
+A browser-based hand-tracked creative tool. Draw with a pinch gesture on a linen canvas; each pastel color plays a distinct instrument in real time.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
 
-## React Compiler
+- React 19 + Vite 8
+- [@mediapipe/hands](https://www.npmjs.com/package/@mediapipe/hands) for hand tracking
+- [Tone.js](https://tonejs.github.io/) for real-time audio synthesis
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Local development
 
-## Expanding the ESLint configuration
+```bash
+npm install
+npm run dev
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Open <http://localhost:5173>. The first interaction unlocks the audio context; granting webcam permission unlocks hand tracking.
+
+### Dev-only specs page
+
+In development, append `?specs` to the URL to see a table of color → instrument mappings, audio cues, and prompts.
+
+## Build
+
+```bash
+npm run build
+npm run preview
+```
+
+The dist output is fully static (~700 KB) and can be hosted on any static host. Webcam access requires HTTPS (or localhost) in modern browsers.
+
+## Deploy to Vercel
+
+1. Push to GitHub.
+2. In Vercel, "New Project" → import the repo.
+3. Framework preset: **Vite**. Build command: `npm run build`. Output dir: `dist`.
+4. After deploy, open the production URL and grant camera permission.
+
+## Lint
+
+```bash
+npm run lint
+```
