@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import PlonkLogo from '../components/PlonkLogo';
+import ToolPanel from '../components/ToolPanel';
 import { MemoryBookIcon, ClearIcon } from '../components/icons';
 import { COPY } from '../constants/copy';
 import { MVP_PALETTE } from '../constants/palette';
@@ -25,12 +26,14 @@ export default function CanvasView({ onOpenMemoryBook }) {
       </header>
 
       <div className="canvas-view__body">
-        {/* ToolPanel placeholder — Step 5 */}
-        <aside className="canvas-view__panel-placeholder" aria-label="Tools">
-          <div style={{ padding: 8, fontSize: 11, color: 'var(--color-text-muted)' }}>
-            Tools
-          </div>
-        </aside>
+        <ToolPanel
+          activeColor={activeColor}
+          onSelectColor={setActiveColor}
+          activeTool={activeTool}
+          onSelectTool={setActiveTool}
+          strokeSize={strokeSize}
+          onChangeSize={setStrokeSize}
+        />
 
         {/* Canvas area placeholder — Step 4 */}
         <main className="canvas-view__canvas-area linen-canvas">

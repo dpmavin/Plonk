@@ -42,14 +42,6 @@
   position: relative;
 }
 
-.canvas-view__panel-placeholder {
-  width: 72px;
-  flex-shrink: 0;
-  background: var(--color-panel-bg);
-  border-right: 1px solid var(--color-border);
-  box-shadow: var(--shadow-panel);
-}
-
 .canvas-view__canvas-area {
   flex: 1;
   position: relative;
