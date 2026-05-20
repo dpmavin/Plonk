@@ -1,0 +1,63 @@
+.plonk-logo {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  user-select: none;
+}
+
+.plonk-logo__text {
+  position: relative;
+  display: inline-block;
+}
+
+.plonk-logo__o-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.plonk-logo__dot {
+  position: absolute;
+  top: -6px;
+  left: calc(50% + 2px);
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-coral);
+  opacity: 0.85;
+  transition: transform 220ms var(--ease-spring);
+}
+
+.plonk-logo:hover .plonk-logo__dot {
+  animation: instrumentBounce 320ms var(--ease-spring);
+}
+
+/* Default = 28px */
+.plonk-logo--default {
+  font-size: 28px;
+}
+
+/* Small = 20px, smaller dot */
+.plonk-logo--sm {
+  font-size: 20px;
+}
+
+.plonk-logo--sm .plonk-logo__dot {
+  width: 6px;
+  height: 6px;
+  top: -4px;
+}
+
+/* Mono = white wordmark, lavender dot (for dark overlays) */
+.plonk-logo--mono {
+  color: var(--color-white);
+  font-size: 28px;
+}
+
+.plonk-logo--mono .plonk-logo__dot {
+  background: var(--color-lavender);
+}

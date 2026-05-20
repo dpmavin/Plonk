@@ -1,0 +1,120 @@
+.canvas-view {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: var(--color-canvas-bg);
+}
+
+/* === HEADER === */
+.canvas-view__header {
+  height: 52px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-5);
+  background: var(--color-panel-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.canvas-view__header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  transition: background var(--duration-fast) var(--ease-soft);
+}
+
+.canvas-view__header-btn:hover {
+  background: var(--color-lavender);
+  background: rgba(226, 203, 247, 0.5);
+}
+
+/* === BODY (panel + canvas) === */
+.canvas-view__body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+.canvas-view__panel-placeholder {
+  width: 72px;
+  flex-shrink: 0;
+  background: var(--color-panel-bg);
+  border-right: 1px solid var(--color-border);
+  box-shadow: var(--shadow-panel);
+}
+
+.canvas-view__canvas-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* === FOOTER === */
+.canvas-view__footer {
+  height: 56px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: 0 var(--space-5);
+  background: var(--color-panel-bg);
+  border-top: 1px solid var(--color-border);
+}
+
+/* === BUTTONS (shared) === */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  border-radius: var(--radius-pill);
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-soft),
+    color var(--duration-fast) var(--ease-soft),
+    border-color var(--duration-fast) var(--ease-soft),
+    transform var(--duration-fast) var(--ease-soft);
+  border: 1px solid transparent;
+}
+
+.btn--primary {
+  background: var(--color-brand-green);
+  color: var(--color-white);
+}
+
+.btn--primary:hover {
+  background: var(--color-brand-green-hover);
+}
+
+.btn--primary:active {
+  transform: scale(0.97);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.btn--ghost:hover {
+  background: var(--color-panel-bg);
+}
+
+.btn--ghost-danger:hover {
+  background: rgba(250, 145, 137, 0.12);
+  color: #B14A40;
+  border-color: rgba(250, 145, 137, 0.4);
+}
