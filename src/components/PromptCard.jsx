@@ -1,61 +1,59 @@
-import { useState } from 'react';
-import { CloseIcon } from './icons';
+import { CloseIcon, SparkIcon } from './icons';
 import { COPY } from '../constants/copy';
 import './PromptCard.css';
 
 /**
- * PromptCard — floating top-center prompt card.
+ * PromptCard — card-style row above the canvas. Always visible until dismissed.
+ *
+ * Layout:
+ *   [★ gold icon]  TODAY'S PROMPT                        [Skip] [Start] [X]
+ *                  Sketch out your next big idea
  *
  * Props:
  *   text       — current prompt string
- *   onSkip     — () => void  (request next prompt)
- *   onDismiss  — () => void  (hide card entirely)
+ *   onSkip     — () => void  (advance to a new random prompt)
+ *   onStart    — () => void  (commit to this prompt — hides the card)
+ *   onDismiss  — () => void  (close the card entirely)
  *   audio      — { triggerCue }
  */
-export default function PromptCard({ text, onSkip, onDismiss, audio }) {
-  const [leaving, setLeaving] = useState(false);
-
-  const animateOut = (after) => {
-    setLeaving(true);
-    setTimeout(() => {
-      after();
-      setLeaving(false);
-    }, 250);
-  };
-
+export default function PromptCard({ text, onSkip, onStart, onDismiss, audio }) {
   return (
-    <div
-      className={'prompt-card' + (leaving ? ' is-leaving' : '')}
-      role="region"
-      aria-label="Prompt"
-    >
-      <p className="prompt-card__text">{text}</p>
+    <div className="prompt-card" role="region" aria-label="Today's prompt">
+      <div className="prompt-card__icon" aria-hidden="true">
+        <SparkIcon />
+      </div>
+
+      <div className="prompt-card__body">
+        <span className="prompt-card__label">{COPY.promptRow.label}</span>
+        <p className="prompt-card__text">{text}</p>
+      </div>
+
       <div className="prompt-card__actions">
         <button
           type="button"
-          className="prompt-card__btn"
+          className="prompt-card__skip"
           onClick={() => {
             audio?.triggerCue('toolTogglePen');
             onSkip();
           }}
         >
-          {COPY.prompt.skip}
+          {COPY.promptRow.skip}
         </button>
         <button
           type="button"
-          className="prompt-card__btn"
+          className="prompt-card__start"
           onClick={() => {
-            audio?.triggerCue('toolTogglePen');
-            animateOut(onDismiss);
+            audio?.triggerCue('pinchStart');
+            onStart();
           }}
         >
-          {COPY.prompt.freestyle}
+          {COPY.promptRow.start}
         </button>
         <button
           type="button"
           className="prompt-card__dismiss"
-          aria-label={COPY.prompt.dismissAria}
-          onClick={() => animateOut(onDismiss)}
+          aria-label={COPY.promptRow.dismissAria}
+          onClick={onDismiss}
         >
           <CloseIcon />
         </button>

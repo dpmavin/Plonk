@@ -4,23 +4,24 @@ import MemoryBookView from './views/MemoryBookView';
 import PlaybackView from './views/PlaybackView';
 import SpecsView from './views/SpecsView';
 import OnboardingOverlay from './components/OnboardingOverlay';
+import SegmentedNav from './components/SegmentedNav';
+import './App.css';
 
 export default function App() {
-  const [view, setView] = useState('canvas'); // 'canvas' | 'memoryBook' | 'playback'
+  const [view, setView] = useState('canvas'); // 'canvas' | 'memoryBook' | 'playback' | 'specs'
   const [selectedArtwork, setSelectedArtwork] = useState(null);
-  const [isOnboarded, setIsOnboarded] = useState(
-    () => {
-      try {
-        return localStorage.getItem('plonk_onboarded') === 'true';
-      } catch {
-        return true;
-      }
+  const [isOnboarded, setIsOnboarded] = useState(() => {
+    try {
+      return localStorage.getItem('plonk_onboarded') === 'true';
+    } catch {
+      return true;
     }
-  );
+  });
 
-  // Dev-only specs page — ?specs in dev mode bypasses the app
+  // Specs page is dev-only — query string or nav clicks both work in DEV
+  const specsAllowed = import.meta.env.DEV;
   if (
-    import.meta.env.DEV &&
+    specsAllowed &&
     typeof window !== 'undefined' &&
     window.location.search.includes('specs')
   ) {
@@ -36,15 +37,11 @@ export default function App() {
     setSelectedArtwork(artwork);
     setView('playback');
   };
+  const goSpecs = specsAllowed ? () => setView('specs') : undefined;
 
   let body;
   if (view === 'memoryBook') {
-    body = (
-      <MemoryBookView
-        onBack={goCanvas}
-        onOpenArtwork={goPlayback}
-      />
-    );
+    body = <MemoryBookView onBack={goCanvas} onOpenArtwork={goPlayback} />;
   } else if (view === 'playback' && selectedArtwork) {
     body = (
       <PlaybackView
@@ -52,13 +49,32 @@ export default function App() {
         onClose={() => setView('memoryBook')}
       />
     );
+  } else if (view === 'specs') {
+    body = <SpecsView onBack={goCanvas} />;
   } else {
-    body = <CanvasView onOpenMemoryBook={goMemoryBook} />;
+    body = <CanvasView />;
   }
+
+  // Playback is an overlay — hide the nav so it doesn't poke through
+  const showNav = view !== 'playback';
+  const activeNav =
+    view === 'memoryBook' ? 'memoryBook' :
+    view === 'specs' ? 'specs' :
+    'canvas';
 
   return (
     <>
       {body}
+      {showNav && (
+        <div className="app-nav-dock">
+          <SegmentedNav
+            active={activeNav}
+            onCanvas={goCanvas}
+            onMemoryBook={goMemoryBook}
+            onSpecs={goSpecs}
+          />
+        </div>
+      )}
       {!isOnboarded && (
         <OnboardingOverlay onComplete={() => setIsOnboarded(true)} />
       )}

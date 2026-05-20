@@ -1,0 +1,13 @@
+/* Floating nav dock — sits at the bottom-left of every view */
+.app-nav-dock {
+  position: fixed;
+  left: var(--space-5);
+  bottom: var(--space-5);
+  z-index: 40;
+  pointer-events: auto;
+}
+
+/* Reserve bottom space so view content doesn't tuck under the nav */
+:root {
+  --app-nav-height: 60px;
+}

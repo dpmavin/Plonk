@@ -1,0 +1,52 @@
+.segnav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--color-brand-green);
+  border-radius: var(--radius-pill);
+  padding: 6px;
+  box-shadow: 0 2px 8px rgba(11, 59, 46, 0.22);
+}
+
+.segnav__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 18px;
+  border-radius: var(--radius-pill);
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  transition:
+    background var(--duration-fast) var(--ease-soft),
+    color var(--duration-fast) var(--ease-soft);
+  cursor: pointer;
+}
+
+.segnav__item:hover {
+  color: var(--color-white);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.segnav__item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.segnav__label {
+  white-space: nowrap;
+}
+
+.segnav__item.is-active {
+  /* Cream pill — matches the "Today's prompt" card background */
+  background: #F8F6F1;
+  color: var(--color-text-primary);
+}
+
+.segnav__item.is-active:hover {
+  background: #F8F6F1;
+  color: var(--color-text-primary);
+}

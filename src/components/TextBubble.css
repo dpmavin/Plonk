@@ -29,6 +29,9 @@
   word-wrap: break-word;
   min-width: 60px;
   min-height: 1.2em;
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: normal;
 }
 
 .text-bubble__editor:empty::before {

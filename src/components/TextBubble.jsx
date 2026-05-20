@@ -33,9 +33,21 @@ export default function TextBubble({
   onKeyAudio,
 }) {
   const ref = useRef(null);
+  const initializedRef = useRef(false);
   const [hovering, setHovering] = useState(false);
 
-  // Focus when active
+  // Initialize the editor's text content ONCE via the DOM ref.
+  // We never re-render `text` as a React child — that would replace the text
+  // node on every keystroke, snapping the caret to position 0 (which makes
+  // typing appear right-to-left).
+  useEffect(() => {
+    if (ref.current && !initializedRef.current) {
+      ref.current.textContent = text || '';
+      initializedRef.current = true;
+    }
+  }, [text]);
+
+  // Focus + place caret at end when activated
   useEffect(() => {
     if (active && ref.current) {
       ref.current.focus();
@@ -103,13 +115,12 @@ export default function TextBubble({
       <div
         ref={ref}
         className="text-bubble__editor"
+        dir="ltr"
         contentEditable={active}
         suppressContentEditableWarning
         onInput={(e) => onChange?.(e.currentTarget.textContent)}
         onKeyDown={handleKeyDown}
-      >
-        {text}
-      </div>
+      />
 
       {!active && hovering && (
         <button

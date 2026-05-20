@@ -9,10 +9,34 @@
   overflow-y: auto;
 }
 
+.specs-view__top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-6);
+}
+
+.specs-view__back {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-panel);
+  transition: transform var(--duration-fast) var(--ease-spring);
+}
+
+.specs-view__back:hover {
+  transform: scale(1.06);
+}
+
 .specs-view h1 {
   font-size: 24px;
   font-weight: 700;
-  margin: 0 0 var(--space-6);
+  margin: 0;
 }
 
 .specs-view section {

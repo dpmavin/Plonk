@@ -1,15 +1,29 @@
 import { PALETTE } from '../constants/palette';
 import { PROMPTS } from '../constants/prompts';
 import { AUDIO_CUES } from '../constants/audioCues';
+import { BackIcon } from '../components/icons';
 import './SpecsView.css';
 
 /**
- * SpecsView — dev-only inventory page. Mount with `?specs` query string.
+ * SpecsView — dev-only inventory page. Mount with `?specs` query string or
+ * via the footer SegmentedNav (which is hidden in production).
  */
-export default function SpecsView() {
+export default function SpecsView({ onBack }) {
   return (
     <div className="specs-view">
-      <h1>Plonk Specs</h1>
+      <div className="specs-view__top">
+        {onBack && (
+          <button
+            type="button"
+            className="specs-view__back"
+            aria-label="Back to canvas"
+            onClick={onBack}
+          >
+            <BackIcon />
+          </button>
+        )}
+        <h1>Plonk Specs</h1>
+      </div>
 
       <section>
         <h2>Colors → Instruments</h2>

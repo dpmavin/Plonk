@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'plonk_artworks';
+const STORAGE_KEY = 'plonk_shared_artworks';
 
 function load() {
   try {

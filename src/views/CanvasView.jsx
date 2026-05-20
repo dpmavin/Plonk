@@ -12,7 +12,7 @@ import Toast from '../components/Toast';
 import { randomPrompt } from '../constants/prompts';
 import { useMemoryBook } from '../hooks/useMemoryBook';
 import { exportArtworkPNG } from '../utils/canvasExport';
-import { MemoryBookIcon, ClearIcon } from '../components/icons';
+import { CheckIcon } from '../components/icons';
 import { COPY } from '../constants/copy';
 import { MVP_PALETTE } from '../constants/palette';
 import { useMediaPipe } from '../hooks/useMediaPipe';
@@ -21,7 +21,7 @@ import { useDrawing } from '../hooks/useDrawing';
 import { useAudio } from '../hooks/useAudio';
 import './CanvasView.css';
 
-export default function CanvasView({ onOpenMemoryBook }) {
+export default function CanvasView() {
   const [activeColor, setActiveColor] = useState(MVP_PALETTE[0]);
   const [activeTool, setActiveTool] = useState('pen');
   const [strokeSize, setStrokeSize] = useState(8);
@@ -32,6 +32,7 @@ export default function CanvasView({ onOpenMemoryBook }) {
   const [showPrompt, setShowPrompt] = useState(true);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [cameraOn, setCameraOn] = useState(true);
 
   const { addArtwork } = useMemoryBook();
 
@@ -40,9 +41,19 @@ export default function CanvasView({ onOpenMemoryBook }) {
   const [areaSize, setAreaSize] = useState({ w: 0, h: 0 });
 
   const { videoRef, landmarks, handVisible, cameraReady, error: cameraError } =
-    useMediaPipe({ enabled: true });
+    useMediaPipe({ enabled: cameraOn });
 
   const audio = useAudio();
+
+  const handleToggleCamera = useCallback(() => {
+    setCameraOn((prev) => {
+      const next = !prev;
+      // Soft chime when the user turns the camera back on; muted exhale when off
+      if (next) audio.triggerCue('memoryBookOpen');
+      else audio.triggerCue('pinchRelease');
+      return next;
+    });
+  }, [audio]);
 
   // Unlock audio on first interaction anywhere in the canvas view
   useEffect(() => {
@@ -71,38 +82,89 @@ export default function CanvasView({ onOpenMemoryBook }) {
     return () => ro.disconnect();
   }, []);
 
-  const indexTip = landmarks[8];
-  const cursorX = indexTip ? indexTip.x * areaSize.w : 0;
-  const cursorY = indexTip ? indexTip.y * areaSize.h : 0;
-
-  const { isPinching, rippleKey } = usePinch({
+  const { isPinching, isHolding, pinchX, pinchY, rippleKey } = usePinch({
     landmarks,
-    areaWidth: areaSize.w,
-    areaHeight: areaSize.h,
-    thresholdPx: 40,
+    // Eraser is real-time: skip the engage hold entirely so erasing happens
+    // the moment you pinch. Pen/crayon still get the 1s hold to prevent
+    // accidental stroke starts.
+    engageHoldMs: activeTool === 'eraser' ? 0 : 1000,
   });
 
-  // Drawing is only active in pen/crayon modes (text tool placed via mouse)
+  // Drawing target = pinch midpoint when pinching (matches what the user
+  // actually feels), otherwise the index fingertip (for hover cursor).
+  const indexTip = landmarks[8];
+  const rawX = isPinching && pinchX
+    ? pinchX * areaSize.w
+    : (indexTip ? indexTip.x * areaSize.w : 0);
+  const rawY = isPinching && pinchY
+    ? pinchY * areaSize.h
+    : (indexTip ? indexTip.y * areaSize.h : 0);
+
+  // Exponential moving average — softens MediaPipe's per-frame jitter while
+  // keeping stroke onset responsive. We snap to raw on pinch start so the
+  // first drawn point matches the cursor exactly.
+  const [smoothed, setSmoothed] = useState({ x: 0, y: 0, ready: false, wasPinching: false });
+  useEffect(() => {
+    // Legitimate sync-from-external-input: MediaPipe's landmark stream is the
+    // external source; we mirror it through a low-pass filter into state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSmoothed((prev) => {
+      if (!prev.ready) {
+        return { x: rawX, y: rawY, ready: handVisible, wasPinching: isPinching };
+      }
+      if (isPinching && !prev.wasPinching) {
+        // Snap on pinch onset — no lag at stroke start
+        return { x: rawX, y: rawY, ready: true, wasPinching: true };
+      }
+      // Heavy smoothing — kills micro-tremors while still following intent.
+      // Hover is slightly looser so the visible cursor stays responsive.
+      const a = isPinching ? 0.18 : 0.4;
+      return {
+        x: prev.x + a * (rawX - prev.x),
+        y: prev.y + a * (rawY - prev.y),
+        ready: true,
+        wasPinching: isPinching,
+      };
+    });
+  }, [rawX, rawY, isPinching, handVisible]);
+  const cursorX = smoothed.x;
+  const cursorY = smoothed.y;
+
+  // Drawing is active in pen/crayon/eraser modes (text tool placed via mouse)
   const drawingEnabled =
-    handVisible && (activeTool === 'pen' || activeTool === 'crayon');
+    handVisible &&
+    (activeTool === 'pen' || activeTool === 'marker' || activeTool === 'crayon' || activeTool === 'eraser');
 
   // Throttle in-stroke notes so we don't fire every frame
   const lastNoteAtRef = useRef(0);
   const [noteBumpKey, setNoteBumpKey] = useState(0);
+
+  // Capture the moment of the first stroke and the set of colors actually used,
+  // so saves can record duration_seconds + colors_used for the Memory Book.
+  const drawStartedAtRef = useRef(null);
+  const colorsUsedRef = useRef(new Set());
+
   const handleStrokeStart = useCallback(() => {
     audio.triggerCue('pinchStart');
-    audio.triggerNote(activeColor.id);
+    if (drawStartedAtRef.current == null) {
+      drawStartedAtRef.current = Date.now();
+    }
+    if (activeTool !== 'eraser') {
+      colorsUsedRef.current.add(activeColor.hex);
+      audio.triggerNote(activeColor.id);
+      setNoteBumpKey((k) => k + 1);
+    }
     lastNoteAtRef.current = performance.now();
-    setNoteBumpKey((k) => k + 1);
-  }, [audio, activeColor.id]);
+  }, [audio, activeColor.id, activeColor.hex, activeTool]);
   const handleStrokeContinue = useCallback(() => {
+    if (activeTool === 'eraser') return;
     const now = performance.now();
     if (now - lastNoteAtRef.current > 280) {
       audio.triggerNote(activeColor.id);
       lastNoteAtRef.current = now;
       setNoteBumpKey((k) => k + 1);
     }
-  }, [audio, activeColor.id]);
+  }, [audio, activeColor.id, activeTool]);
   const handleStrokeEnd = useCallback(() => {
     audio.triggerCue('pinchRelease');
   }, [audio]);
@@ -125,13 +187,12 @@ export default function CanvasView({ onOpenMemoryBook }) {
     canvasRef.current?.clear();
     audio.triggerCue('clear');
     setSweeping(true);
+    drawStartedAtRef.current = null;
+    colorsUsedRef.current = new Set();
+    setTextBubbles([]);
+    setActiveTextId(null);
     setTimeout(() => setSweeping(false), 700);
   }, [audio]);
-
-  const handleOpenMemoryBook = useCallback(() => {
-    audio.triggerCue('memoryBookOpen');
-    onOpenMemoryBook();
-  }, [audio, onOpenMemoryBook]);
 
   const sizeLabelFromStroke = (n) =>
     n <= 10 ? 'S' : n <= 20 ? 'M' : 'L';
@@ -159,6 +220,64 @@ export default function CanvasView({ onOpenMemoryBook }) {
       setActiveTextId(id);
     },
     [activeTool, activeColor.hex, strokeSize]
+  );
+
+  // === Mouse drawing — pointerdown/move/up for pen/crayon/eraser tools ===
+  const handleAreaPointerDown = useCallback(
+    (e) => {
+      if (e.button !== 0) return; // only primary button
+      if (
+        activeTool !== 'pen' &&
+        activeTool !== 'marker' &&
+        activeTool !== 'crayon' &&
+        activeTool !== 'eraser'
+      ) return;
+      // Don't draw when interacting with overlay UI inside the canvas-area
+      if (e.target.closest('.text-bubble, .prompt-card, .webcam-pip')) return;
+
+      const rect = canvasAreaRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const x0 = e.clientX - rect.left;
+      const y0 = e.clientY - rect.top;
+
+      canvasRef.current?.beginStroke({
+        x: x0,
+        y: y0,
+        color: activeColor.hex,
+        size: strokeSize,
+        tool: activeTool,
+      });
+      handleStrokeStart();
+
+      const onMove = (ev) => {
+        const r = canvasAreaRef.current?.getBoundingClientRect();
+        if (!r) return;
+        const x = ev.clientX - r.left;
+        const y = ev.clientY - r.top;
+        canvasRef.current?.continueStroke({ x, y });
+        handleStrokeContinue();
+      };
+      const onUp = () => {
+        canvasRef.current?.endStroke();
+        handleStrokeEnd();
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
+      };
+
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp, { once: true });
+      window.addEventListener('pointercancel', onUp, { once: true });
+      e.preventDefault();
+    },
+    [
+      activeTool,
+      activeColor.hex,
+      strokeSize,
+      handleStrokeStart,
+      handleStrokeContinue,
+      handleStrokeEnd,
+    ]
   );
 
   const handleTextChange = useCallback((id, text) => {
@@ -191,11 +310,10 @@ export default function CanvasView({ onOpenMemoryBook }) {
 
   const handleSave = useCallback(
     async ({ title, mood, pinned }) => {
-      // Need the underlying canvas element for compositing
-      const canvasEl =
-        canvasAreaRef.current?.querySelector('canvas.plonk-canvas');
+      // Composites both layers (committed + live) into a single canvas
+      const strokesCanvas = canvasRef.current?.getCompositedCanvas() || null;
       const imageDataURL = exportArtworkPNG({
-        canvasEl,
+        canvasEl: strokesCanvas,
         bubbles: textBubbles,
         bgColor: getComputedStyle(document.documentElement)
           .getPropertyValue('--color-canvas-bg')
@@ -203,12 +321,20 @@ export default function CanvasView({ onOpenMemoryBook }) {
         areaWidth: areaSize.w,
         areaHeight: areaSize.h,
       });
+
+      // Compute duration from first stroke (or instant save if user pressed
+      // Save before drawing anything).
+      const startedAt = drawStartedAtRef.current ?? Date.now();
+      const durationSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+
       addArtwork({
         title,
         mood,
         pinned,
         prompt: showPrompt ? currentPrompt : '',
         imageDataURL,
+        colors_used: Array.from(colorsUsedRef.current),
+        duration_seconds: durationSeconds,
       });
       audio.triggerCue('save');
       setShowSaveDialog(false);
@@ -221,14 +347,6 @@ export default function CanvasView({ onOpenMemoryBook }) {
     <div className="canvas-view">
       <header className="canvas-view__header">
         <PlonkLogo variant="default" />
-        <button
-          type="button"
-          className="canvas-view__header-btn"
-          aria-label={COPY.headerMemoryBookAria}
-          onClick={handleOpenMemoryBook}
-        >
-          <MemoryBookIcon />
-        </button>
       </header>
 
       <div className="canvas-view__body">
@@ -242,27 +360,30 @@ export default function CanvasView({ onOpenMemoryBook }) {
           audio={audio}
         />
 
-        <main
-          ref={canvasAreaRef}
-          className={
-            'canvas-view__canvas-area linen-canvas' +
-            (activeTool === 'text' ? ' is-text-mode' : '')
-          }
-          onClick={handleCanvasAreaClick}
-        >
+        <div className="canvas-view__canvas-column">
+          {showPrompt && (
+            <PromptCard
+              text={currentPrompt}
+              onSkip={() => setCurrentPrompt((p) => randomPrompt(p))}
+              onStart={() => setShowPrompt(false)}
+              onDismiss={() => setShowPrompt(false)}
+              audio={audio}
+            />
+          )}
+          <main
+            ref={canvasAreaRef}
+            className={
+              'canvas-view__canvas-area linen-canvas' +
+              (activeTool === 'text' ? ' is-text-mode' : ' is-draw-mode')
+            }
+            onClick={handleCanvasAreaClick}
+            onPointerDown={handleAreaPointerDown}
+          >
           {!cameraReady && !cameraError && (
             <div className="canvas-view__loading">Waking up the camera…</div>
           )}
           <Canvas ref={canvasRef} width={areaSize.w} height={areaSize.h} />
 
-          {showPrompt && (
-            <PromptCard
-              text={currentPrompt}
-              onSkip={() => setCurrentPrompt((p) => randomPrompt(p))}
-              onDismiss={() => setShowPrompt(false)}
-              audio={audio}
-            />
-          )}
           {sweeping && <div className="canvas-view__sweep" aria-hidden="true" />}
 
           {textBubbles.map((b) => (
@@ -287,8 +408,11 @@ export default function CanvasView({ onOpenMemoryBook }) {
             y={cursorY}
             visible={handVisible}
             pinching={isPinching}
+            holding={isHolding}
             color={activeColor.hex}
             rippleKey={rippleKey}
+            eraser={activeTool === 'eraser'}
+            eraserSize={Math.max(8, strokeSize)}
           />
           <NowPlaying
             color={activeColor}
@@ -296,23 +420,38 @@ export default function CanvasView({ onOpenMemoryBook }) {
             bumpKey={noteBumpKey}
           />
         </main>
+        </div>
       </div>
 
       <footer className="canvas-view__footer">
-        <button
-          type="button"
-          className="btn btn--ghost btn--ghost-danger"
-          onClick={handleClear}
-        >
-          <ClearIcon />
-          <span>{COPY.footer.clear}</span>
-        </button>
-        <button type="button" className="btn btn--primary" onClick={handleOpenSave}>
-          <span>{COPY.footer.save}</span>
-        </button>
+        <div className="canvas-view__footer-actions">
+          <button
+            type="button"
+            className="btn btn--ghost btn--ghost-danger"
+            onClick={handleClear}
+          >
+            <span>{COPY.footer.clear}</span>
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={handleOpenSave}
+          >
+            <CheckIcon width="14" height="14" />
+            <span>Save</span>
+          </button>
+        </div>
       </footer>
 
-      <WebcamPiP videoRef={videoRef} error={cameraError} />
+      <WebcamPiP
+        videoRef={videoRef}
+        error={cameraError}
+        cameraOn={cameraOn}
+        onToggleCamera={handleToggleCamera}
+        landmarks={landmarks}
+        handVisible={handVisible}
+        activeTool={activeTool}
+      />
 
       {showSaveDialog && (
         <SaveDialog

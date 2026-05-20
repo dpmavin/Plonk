@@ -1,71 +1,144 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * usePinch — derives pinch state from MediaPipe landmarks.
+ * usePinch — pinch state with start-hold and instant release.
  *
- * Pinch = thumb tip (landmark 4) within threshold of index tip (landmark 8),
- * measured in 2D normalized space scaled to the viewport's smaller dimension.
+ * Detection is rotation-, scale-, and chirality-invariant: we compute the
+ * 3D distance between thumb tip (4) and index tip (8) and divide by the
+ * hand's palm size (wrist → middle-finger MCP). The resulting ratio is the
+ * same whether the palm faces the camera, faces sideways, the hand is left
+ * or right, big or small, near or far.
  *
- * Props:
- *   landmarks    — array of 21 {x, y, z} normalized; empty when no hand
- *   areaWidth    — pixel width of the drawing surface (for px threshold)
- *   areaHeight   — pixel height of the drawing surface
- *   thresholdPx  — pinch distance in px (default 40)
+ * Rule:
+ *   Pinch detected → wait `engageHoldMs` → start drawing
+ *   Pinch released → stop drawing instantly (no debounce, no carry-over)
  *
  * Returns:
- *   isPinching   — boolean
- *   pinchX       — normalized x [0..1] (midpoint of thumb/index)
- *   pinchY       — normalized y [0..1]
- *   rippleKey    — increments at the start of each new pinch
+ *   isPinching     — boolean, true only after the hold has elapsed
+ *   isHolding      — boolean, true during the engage window
+ *   pinchX/pinchY  — normalized midpoint of thumb/index (2D for cursor)
+ *   rippleKey      — increments at engagement
  */
 export function usePinch({
   landmarks,
-  areaWidth,
-  areaHeight,
-  thresholdPx = 40,
+  threshold = 0.35,        // ratio of thumb-index distance to palm size
+  engageHoldMs = 2000,
 }) {
-  const [state, setState] = useState({ isPinching: false, x: 0, y: 0 });
+  const [state, setState] = useState({
+    isPinching: false,
+    isHolding: false,
+    x: 0,
+    y: 0,
+  });
   const [rippleKey, setRippleKey] = useState(0);
-  const wasPinching = useRef(false);
+
+  const engagedRef = useRef(false);
+  const engageStartRef = useRef(null);
 
   useEffect(() => {
+    // Legitimate sync-from-external-input: this hook mirrors the MediaPipe
+    // landmark stream into derived pinch state.
+    /* eslint-disable react-hooks/set-state-in-effect */
     const thumb = landmarks[4];
-    const index = landmarks[8];
+    const wrist = landmarks[0];
+    const middleMCP = landmarks[9];
 
-    if (!thumb || !index || !areaWidth || !areaHeight) {
-      if (wasPinching.current) {
-        wasPinching.current = false;
-        setState((s) => ({ ...s, isPinching: false }));
+    // Hand lost or partially detected: release instantly + clear timers
+    if (!thumb || !wrist || !middleMCP) {
+      if (engagedRef.current) {
+        engagedRef.current = false;
       }
+      engageStartRef.current = null;
+      setState({ isPinching: false, isHolding: false, x: 0, y: 0 });
       return;
     }
 
-    // Scale to px in the smaller dimension for a stable threshold across aspect ratios
-    const scale = Math.min(areaWidth, areaHeight);
-    const dx = (thumb.x - index.x) * scale;
-    const dy = (thumb.y - index.y) * scale;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    // Find the closest point on the index finger (MCP→PIP→DIP→tip) to the
+    // thumb tip. This way "claw" / curled-thumb gestures register as a pinch
+    // even when the thumb meets the side of the index, not its tip.
+    let minDist = Infinity;
+    let closestLm = null;
+    for (const i of [5, 6, 7, 8]) {
+      const lm = landmarks[i];
+      if (!lm) continue;
+      const dx = thumb.x - lm.x;
+      const dy = thumb.y - lm.y;
+      const dz = (thumb.z || 0) - (lm.z || 0);
+      const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (d < minDist) {
+        minDist = d;
+        closestLm = lm;
+      }
+    }
 
-    // Hysteresis: enter at threshold, leave at threshold * 1.4 — avoids flicker
-    const enterTh = thresholdPx;
-    const leaveTh = thresholdPx * 1.4;
-    const nextIsPinching = wasPinching.current
-      ? dist < leaveTh
-      : dist < enterTh;
+    if (!closestLm) {
+      if (engagedRef.current) {
+        engagedRef.current = false;
+      }
+      engageStartRef.current = null;
+      setState({ isPinching: false, isHolding: false, x: 0, y: 0 });
+      return;
+    }
 
-    const midX = (thumb.x + index.x) / 2;
-    const midY = (thumb.y + index.y) / 2;
+    // Palm size reference (wrist → middle finger MCP), also 3D
+    const pdx = wrist.x - middleMCP.x;
+    const pdy = wrist.y - middleMCP.y;
+    const pdz = (wrist.z || 0) - (middleMCP.z || 0);
+    const palmSize = Math.sqrt(pdx * pdx + pdy * pdy + pdz * pdz);
 
-    if (nextIsPinching && !wasPinching.current) {
+    // Ratio = thumb-to-closest-index-point / palm size. Pose & scale free.
+    const ratio = palmSize > 1e-6 ? minDist / palmSize : 1;
+
+    const now = performance.now();
+    const leaveTh = threshold * 1.4;
+    const rawPinching = engagedRef.current ? ratio < leaveTh : ratio < threshold;
+
+    let nextEngaged = engagedRef.current;
+    let holding = false;
+
+    if (rawPinching) {
+      if (!engagedRef.current) {
+        // Begin or continue the engage timer
+        if (engageStartRef.current == null) {
+          engageStartRef.current = now;
+        }
+        if (now - engageStartRef.current >= engageHoldMs) {
+          nextEngaged = true;
+          engageStartRef.current = null;
+        } else {
+          holding = true;
+        }
+      }
+    } else {
+      // INSTANT release — never debounced, regardless of engageStart state
+      engageStartRef.current = null;
+      if (engagedRef.current) {
+        nextEngaged = false;
+      }
+    }
+
+    // Cursor sits at the midpoint of the actual pinch contact, not always
+    // the tip — feels right for thumb-to-PIP curls as well as tip-to-tip.
+    const midX = (thumb.x + closestLm.x) / 2;
+    const midY = (thumb.y + closestLm.y) / 2;
+
+    if (nextEngaged && !engagedRef.current) {
       setRippleKey((k) => k + 1);
     }
 
-    wasPinching.current = nextIsPinching;
-    setState({ isPinching: nextIsPinching, x: midX, y: midY });
-  }, [landmarks, areaWidth, areaHeight, thresholdPx]);
+    engagedRef.current = nextEngaged;
+    setState({
+      isPinching: nextEngaged,
+      isHolding: holding,
+      x: midX,
+      y: midY,
+    });
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [landmarks, threshold, engageHoldMs]);
 
   return {
     isPinching: state.isPinching,
+    isHolding: state.isHolding,
     pinchX: state.x,
     pinchY: state.y,
     rippleKey,

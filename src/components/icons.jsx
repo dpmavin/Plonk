@@ -29,6 +29,59 @@ export const TextIcon = (props) => (
   </svg>
 );
 
+export const MarkerIcon = (props) => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...props}>
+    {/* Chisel-tip marker body */}
+    <path
+      d="M6.5 13.5l7-7 2.5 2.5-7 7-3.5 1 1-3.5z"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+    {/* Cap line at top of stroke */}
+    <path
+      d="M13 7l3 3"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+    {/* Highlight underline showing ink mark */}
+    <path
+      d="M4 17h6"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeOpacity="0.45"
+    />
+  </svg>
+);
+
+export const EraserIcon = (props) => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...props}>
+    <path
+      d="M3.5 13.5l6-6a1.5 1.5 0 012.1 0l3.4 3.4a1.5 1.5 0 010 2.1L11 17H6l-2.5-2.5a1 1 0 010-1z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <path d="M8 9.5l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M6 17h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
+export const SparkIcon = (props) => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...props}>
+    <path
+      d="M10 2.5l1.6 4.2a3 3 0 001.7 1.7L17.5 10l-4.2 1.6a3 3 0 00-1.7 1.7L10 17.5l-1.6-4.2a3 3 0 00-1.7-1.7L2.5 10l4.2-1.6a3 3 0 001.7-1.7L10 2.5z"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+      fill="currentColor"
+      fillOpacity="0.15"
+    />
+  </svg>
+);
+
 export const ClearIcon = (props) => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...props}>
     <path d="M4 6h12M8 6V4h4v2M15 6l-1 10H6L5 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -71,6 +124,83 @@ export const EyeIcon = (props) => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...props}>
     <path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
     <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.8"/>
+  </svg>
+);
+
+export const CanvasIcon = (props) => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...props}>
+    <rect
+      x="2.5"
+      y="4"
+      width="15"
+      height="10"
+      rx="1.6"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    />
+    <path d="M7 17h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M10 14v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
+export const PlusCircleIcon = (props) => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...props}>
+    <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.8" />
+    <path
+      d="M10 6.5v7M6.5 10h7"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+export const CameraIcon = (props) => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...props}>
+    <rect
+      x="2"
+      y="5.5"
+      width="16"
+      height="11"
+      rx="2"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    />
+    <path
+      d="M7 5.5l1.4-2h3.2L13 5.5"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <circle cx="10" cy="11" r="3" stroke="currentColor" strokeWidth="1.8" />
+  </svg>
+);
+
+export const CameraOffIcon = (props) => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...props}>
+    <rect
+      x="2"
+      y="5.5"
+      width="16"
+      height="11"
+      rx="2"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    />
+    <path
+      d="M7 5.5l1.4-2h3.2L13 5.5"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <circle cx="10" cy="11" r="3" stroke="currentColor" strokeWidth="1.8" />
+    {/* diagonal slash */}
+    <path
+      d="M3 3l14 14"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
   </svg>
 );
 

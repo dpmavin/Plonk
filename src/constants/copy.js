@@ -6,13 +6,23 @@ export const COPY = {
 
   toolPanel: {
     penTooltip: 'Pen',
+    markerTooltip: 'Marker',
     crayonTooltip: 'Crayon',
     textTooltip: 'Text',
+    eraserTooltip: 'Eraser',
     sizeLabel: 'Stroke size',
+  },
+
+  promptRow: {
+    label: "TODAY'S PROMPT",
+    skip: 'Skip',
+    start: 'Start',
+    dismissAria: 'Dismiss prompt',
   },
 
   footer: {
     clear: 'Clear',
+    memoryBook: 'Memory Book',
     save: 'Save to Memory Book',
   },
 

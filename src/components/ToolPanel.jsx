@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { PenIcon, CrayonIcon, TextIcon } from './icons';
-import { MVP_PALETTE } from '../constants/palette';
+import { PenIcon, MarkerIcon, CrayonIcon, TextIcon, EraserIcon } from './icons';
+import { PALETTE } from '../constants/palette';
 import { COPY } from '../constants/copy';
 import './ToolPanel.css';
 
 const TOOLS = [
   { id: 'pen', label: COPY.toolPanel.penTooltip, Icon: PenIcon },
+  { id: 'marker', label: COPY.toolPanel.markerTooltip, Icon: MarkerIcon },
   { id: 'crayon', label: COPY.toolPanel.crayonTooltip, Icon: CrayonIcon },
   { id: 'text', label: COPY.toolPanel.textTooltip, Icon: TextIcon },
+  { id: 'eraser', label: COPY.toolPanel.eraserTooltip, Icon: EraserIcon },
 ];
 
 export default function ToolPanel({
@@ -32,8 +34,10 @@ export default function ToolPanel({
     onSelectTool(id);
     const cueName =
       id === 'pen' ? 'toolTogglePen' :
+      id === 'marker' ? 'toolTogglePen' :  // marker shares pen's tick
       id === 'crayon' ? 'toolToggleCrayon' :
-      'toolToggleText';
+      id === 'text' ? 'toolToggleText' :
+      'toolToggleEraser';
     audio?.triggerCue(cueName);
   };
 
@@ -46,7 +50,7 @@ export default function ToolPanel({
     <aside className="tool-panel" aria-label="Tools">
       {/* Color swatches */}
       <div className="tool-panel__swatches" role="radiogroup" aria-label="Color">
-        {MVP_PALETTE.map((color) => {
+        {PALETTE.map((color) => {
           const selected = activeColor.id === color.id;
           return (
             <button

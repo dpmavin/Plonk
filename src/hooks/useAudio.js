@@ -35,9 +35,15 @@ export function useAudio() {
       ToneRef.current = Tone;
       await Tone.start();
 
-      // Master bus — gentle high-shelf attenuation to soften
+      // Master bus — gentle attenuation + global -12dB ceiling so the mix
+      // sits as ambient background, never attention-grabbing.
       const master = new Tone.Gain(0.85).toDestination();
       masterRef.current = master;
+      try {
+        Tone.getDestination().volume.value = -12;
+      } catch {
+        // older Tone API surfaces — fall back silently
+      }
 
       // Build one instrument per palette color
       const instruments = {};
@@ -117,14 +123,66 @@ export function useAudio() {
 
 // === Instrument factories ===
 
+// Per-color volume floor (dB) — keeps the mix meditative and balanced.
+// Yellow uses its own soft Synth (see below) instead of the harsh MetalSynth.
+const VOLUME_DB = {
+  coral: -14,
+  peach: -16,
+  yellow: -18,
+  lemon: -15,
+  mint: -14,
+  sky: -15,
+  lavender: -16,
+  lilac: -14,
+  rose: -15,
+  caramel: -14,
+  white: -15,
+  // Twilight palette — same range
+  eggplant: -16,
+  mauve: -16,
+  steel: -15,
+  'sage-cream': -16,
+  sage: -14,
+};
+
 function buildInstrument(Tone, color, master) {
-  // Per-color soft reverb keeps the music ambient
   const reverb = new Tone.Reverb({ decay: 2.0, wet: 0.18 }).connect(master);
-  const dbVol = -8; // music layer sits below cues
+  const dbVol = VOLUME_DB[color.id] ?? -16;
   let inst;
+
+  // Special case: yellow — replace the harsh MetalSynth marimba with a soft
+  // bell-like sine Synth so it sits gently in the mix.
+  if (color.id === 'yellow') {
+    inst = new Tone.Synth({
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.05, decay: 0.3, sustain: 0.1, release: 0.8 },
+      volume: dbVol,
+    }).connect(reverb);
+    return inst;
+  }
+
+  // Special case: white — airy chimes, longer release for a meditative tail
+  if (color.id === 'white') {
+    inst = new Tone.Synth({
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.002, decay: 0.5, sustain: 0.05, release: 1.2 },
+      volume: dbVol,
+    }).connect(reverb);
+    return inst;
+  }
+
   switch (color.toneType) {
+    case 'MembraneSynth':
+      // Warm earthy finger-drum / cajon thud
+      inst = new Tone.MembraneSynth({
+        pitchDecay: 0.08,
+        octaves: 4,
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.4 },
+        volume: dbVol,
+      }).connect(reverb);
+      break;
     case 'Sampler':
-      // No external samples in MVP — approximate with an FMSynth tuned warm
       inst = new Tone.FMSynth({
         harmonicity: 1.4,
         modulationIndex: 4,
@@ -144,13 +202,14 @@ function buildInstrument(Tone, color, master) {
       }).connect(reverb);
       break;
     case 'MetalSynth':
+      // Softer, less metallic settings vs the original spec
       inst = new Tone.MetalSynth({
-        envelope: { attack: 0.001, decay: 0.4, release: 0.2 },
-        harmonicity: 4.1,
-        modulationIndex: 16,
-        resonance: 2000,
-        octaves: 1.2,
-        volume: dbVol - 8,
+        envelope: { attack: 0.01, decay: 0.6, release: 0.4 },
+        harmonicity: 3.2,
+        modulationIndex: 8,
+        resonance: 1400,
+        octaves: 0.8,
+        volume: dbVol,
       }).connect(reverb);
       break;
     case 'FMSynth':
@@ -175,7 +234,7 @@ function buildInstrument(Tone, color, master) {
       const poly = new Tone.PolySynth(Tone.Synth, {
         oscillator: { type: 'triangle' },
         envelope: { attack: 0.4, decay: 0.6, sustain: 0.5, release: 1.2 },
-        volume: dbVol - 4,
+        volume: dbVol,
       }).connect(reverb);
       inst = poly;
       break;
@@ -198,7 +257,16 @@ function getOrCreateCueVoice(Tone, cue, cueName, cache) {
   if (cache[cueName]) return cache[cueName];
   const dbVol = ampToDb(cue.volume ?? 0.3);
   let voice;
-  if (cue.type === 'noise') {
+  if (cue.type === 'membrane') {
+    // Creamy "tock" — used for typewriter keypress cues
+    voice = new Tone.MembraneSynth({
+      pitchDecay: cue.pitchDecay ?? 0.04,
+      octaves: cue.octaves ?? 2,
+      oscillator: { type: cue.waveform || 'sine' },
+      envelope: cue.envelope || { attack: 0.001, decay: 0.08, sustain: 0, release: 0.05 },
+      volume: dbVol,
+    }).toDestination();
+  } else if (cue.type === 'noise') {
     voice = new Tone.NoiseSynth({
       noise: { type: cue.noiseType || 'pink' },
       envelope: cue.envelope,
@@ -227,6 +295,15 @@ function playCue(Tone, cue, cache) {
   const voice = getOrCreateCueVoice(Tone, cue, cueName, cache);
   const now = Tone.now();
 
+  if (cue.type === 'membrane') {
+    // Apply per-key pitch variance so successive presses don't sound identical
+    let freq = cue.frequency || 200;
+    if (cue.pitchVariance) {
+      freq = freq * (1 + (Math.random() - 0.5) * 2 * cue.pitchVariance);
+    }
+    voice.triggerAttackRelease(freq, cue.duration || '32n', now);
+    return;
+  }
   if (cue.type === 'noise') {
     voice.triggerAttackRelease(cue.duration || '32n', now);
     return;

@@ -1,9 +1,13 @@
 .webcam-pip {
   position: fixed;
-  bottom: var(--space-6);
+  /* Default: floating in the right portion of the canvas, vertically
+     centered-ish. User can drag from there. */
+  top: 30vh;
   right: var(--space-6);
-  width: 160px;
-  height: 120px;
+  bottom: auto;
+  /* +1cm on each side → +2cm to width and height */
+  width: calc(160px + 2cm);
+  height: calc(120px + 2cm);
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-card);
@@ -11,7 +15,22 @@
   background: #000;
   z-index: var(--z-pip);
   opacity: 0.85;
-  transition: opacity var(--duration-base) var(--ease-soft), transform var(--duration-base) var(--ease-soft);
+  /* Drag affordance: grab cursor, no native drag, no text selection */
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    opacity var(--duration-base) var(--ease-soft),
+    width var(--duration-base) var(--ease-soft),
+    height var(--duration-base) var(--ease-soft);
+}
+
+.webcam-pip.is-dragging {
+  cursor: grabbing;
+  opacity: 1;
+  transition: none;
+  box-shadow: 0 12px 32px rgba(61, 52, 80, 0.22);
 }
 
 .webcam-pip:hover {
@@ -19,9 +38,10 @@
 }
 
 .webcam-pip.is-hidden {
-  width: 36px;
+  /* Collapsed state — just enough room for the toolbar */
+  width: 72px;
   height: 36px;
-  opacity: 0.7;
+  opacity: 0.85;
   background: var(--color-white);
   border-color: var(--color-border);
 }
@@ -38,12 +58,91 @@
   display: block;
 }
 
-.webcam-pip__toggle {
+/* === Status pill (top-left) === */
+.webcam-pip__status {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  background: rgba(20, 14, 32, 0.6);
+  color: var(--color-white);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+}
+
+.webcam-pip__status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+  transition: background var(--duration-fast) var(--ease-soft);
+}
+
+.webcam-pip__status.is-tracking .webcam-pip__status-dot {
+  background: var(--color-mint);
+  box-shadow: 0 0 0 3px rgba(179, 245, 188, 0.18);
+  animation: pipStatusPulse 1.6s var(--ease-soft) infinite;
+}
+
+@keyframes pipStatusPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.65; transform: scale(0.88); }
+}
+
+.webcam-pip__status-text {
+  font-family: 'Nunito', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* === Hand skeleton overlay === */
+.hand-skel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hand-skel__lines line {
+  stroke: #FCAE7C;
+  stroke-width: 1.6px;
+  stroke-linecap: round;
+  opacity: 0.85;
+  vector-effect: non-scaling-stroke;
+}
+
+.hand-skel__dots circle {
+  fill: #FCAE7C;
+  opacity: 0.95;
+}
+
+/* === Toolbar (top-right) === */
+.webcam-pip__toolbar {
   position: absolute;
   top: 6px;
   right: 6px;
-  width: 24px;
-  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 2;
+}
+
+.webcam-pip__btn {
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
@@ -51,34 +150,76 @@
   background: rgba(255, 255, 255, 0.85);
   color: var(--color-text-primary);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition:
+    background var(--duration-fast) var(--ease-soft),
+    color var(--duration-fast) var(--ease-soft),
+    transform var(--duration-fast) var(--ease-spring);
 }
 
-.webcam-pip.is-hidden .webcam-pip__toggle {
+.webcam-pip__btn:hover:not(:disabled) {
+  background: var(--color-white);
+  transform: scale(1.06);
+}
+
+.webcam-pip__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.webcam-pip__btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Camera-off state: muted slash icon, soft red tint */
+.webcam-pip__btn.is-off {
+  background: rgba(250, 145, 137, 0.18);
+  color: #B14A40;
+}
+
+.webcam-pip__btn.is-off:hover:not(:disabled) {
+  background: rgba(250, 145, 137, 0.3);
+}
+
+/* === Off-state placeholder === */
+.webcam-pip--off {
+  background: #2A2434;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.webcam-pip__placeholder {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.4);
 }
 
-.webcam-pip__toggle svg {
-  width: 14px;
-  height: 14px;
+.webcam-pip__placeholder svg {
+  width: 40px;
+  height: 40px;
 }
 
+/* === Error pill === */
 .webcam-pip--error {
   position: fixed;
-  bottom: var(--space-6);
+  /* Float above the 56px footer so the Save button can't cover it */
+  bottom: calc(56px + var(--space-4));
   right: var(--space-6);
   max-width: 240px;
+  /* +1cm tall (≈38px at 96dpi) to fit longer error messages comfortably */
+  min-height: calc(48px + 1cm);
+  display: flex;
+  align-items: center;
   background: var(--color-white);
   color: var(--color-text-muted);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   font-size: 12px;
-  box-shadow: var(--shadow-panel);
-  z-index: var(--z-pip);
+  box-shadow: var(--shadow-toast);
+  /* Above the toast layer so it isn't covered by any other chrome */
+  z-index: calc(var(--z-toast) + 1);
 }
