@@ -1,0 +1,41 @@
+.linen-canvas {
+  background-color: var(--color-canvas-bg);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(180, 170, 155, 0.08) 2px,
+      rgba(180, 170, 155, 0.08) 3px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(180, 170, 155, 0.06) 2px,
+      rgba(180, 170, 155, 0.06) 3px
+    ),
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 4px,
+      rgba(200, 190, 175, 0.04) 4px,
+      rgba(200, 190, 175, 0.04) 5px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 4px,
+      rgba(200, 190, 175, 0.03) 4px,
+      rgba(200, 190, 175, 0.03) 5px
+    );
+}
+
+.linen-canvas-with-texture {
+  background-color: var(--color-canvas-bg);
+  background-image: url('/linen.png');
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  background-blend-mode: multiply;
+  opacity: 0.97;
+}
