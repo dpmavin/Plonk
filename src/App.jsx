@@ -78,6 +78,16 @@ export default function App() {
       {!isOnboarded && (
         <OnboardingOverlay onComplete={() => setIsOnboarded(true)} />
       )}
+      <footer style={{
+        textAlign: 'center',
+        padding: '12px',
+        fontSize: '11px',
+        color: 'var(--color-text-muted)',
+        opacity: 0.5,
+        letterSpacing: '0.04em'
+      }}>
+        Vibe coded by Divya Mavin
+      </footer>
     </>
   );
 }
